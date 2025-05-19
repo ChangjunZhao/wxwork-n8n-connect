@@ -43,23 +43,37 @@ export default function ConnectionsPage() {
           // If parsing JSON fails, stick with the more generic HTTP error
           console.error("解析错误响应JSON失败:", jsonError);
         }
-        throw new Error(errorMsg);
+        // Directly handle the error display and state update
+        toast({
+          title: "加载错误",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        setConnections([]);
+        setIsLoading(false); // Ensure loading state is updated
+        return; // Exit as we've handled the error path
       }
       const data: WeixinConnection[] = await response.json();
       setConnections(data);
     } catch (error: any) {
-      console.error("获取连接数据失败:", error);
+      // This catch block will now primarily handle network errors or unexpected issues
+      // not already handled by the !response.ok check.
+      console.error("获取连接数据失败 (catch):", error);
       toast({
         title: "加载错误",
-        description: error.message || "无法从服务器加载连接数据。请检查服务器日志。",
+        description: error.message || "无法从服务器加载连接数据。请检查网络或服务器日志。",
         variant: "destructive",
       });
-      // Set connections to an empty array in case of an error to avoid rendering issues
       setConnections([]);
     } finally {
-      setIsLoading(false);
+      // Ensure isLoading is always set to false, even if an early return happened.
+      // However, if we returned early, it was already set.
+      // This can be simplified if the early return always sets isLoading.
+      if (isLoading) { // Only set if not already set by an error path
+        setIsLoading(false);
+      }
     }
-  }, [toast]);
+  }, [toast, isLoading]); // Added isLoading to dependency array as it's used in finally
 
   useEffect(() => {
     fetchConnections();
@@ -82,6 +96,7 @@ export default function ConnectionsPage() {
 
   const confirmDelete = async () => {
     if (connectionToDelete) {
+      setIsLoading(true); // Indicate loading during delete
       try {
         const response = await fetch(`/api/connections/${connectionToDelete}`, {
           method: 'DELETE',
@@ -90,8 +105,7 @@ export default function ConnectionsPage() {
           const errorData = await response.json().catch(() => ({ message: '删除失败，请稍后再试。' }));
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
-        // Instead of filtering, re-fetch to ensure data consistency
-        await fetchConnections();
+        await fetchConnections(); // Re-fetch to ensure data consistency
         toast({
           title: "连接已删除",
           description: "企业微信应用连接已成功删除。",
@@ -107,6 +121,7 @@ export default function ConnectionsPage() {
       } finally {
         setConnectionToDelete(null);
         setIsDeleteDialogOpen(false);
+        setIsLoading(false); // End loading
       }
     }
   };
@@ -121,6 +136,7 @@ export default function ConnectionsPage() {
       n8nWebhookUrl: data.n8nWebhookUrl || null, 
     };
     
+    setIsLoading(true); // Indicate loading
     try {
       const response = await fetch(url, {
         method: method,
@@ -148,6 +164,8 @@ export default function ConnectionsPage() {
         description: error.message || "保存连接时发生错误。",
         variant: "destructive",
       });
+    } finally {
+        setIsLoading(false); // End loading
     }
   };
 
@@ -160,14 +178,14 @@ export default function ConnectionsPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             刷新
           </Button>
-          <Button onClick={handleAddConnection}>
+          <Button onClick={handleAddConnection} disabled={isLoading}>
             <PlusCircle className="mr-2 h-4 w-4" />
             添加新连接
           </Button>
         </div>
       </div>
 
-      {isLoading && connections.length === 0 ? (
+      {isLoading && connections.length === 0 && !toast ? ( // Check toast to avoid showing loading if an error toast is already up
          <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
           <RefreshCw className="h-10 w-10 animate-spin text-muted-foreground" />
           <p className="mt-2 text-sm text-muted-foreground">正在加载连接数据...</p>
@@ -202,8 +220,8 @@ export default function ConnectionsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setConnectionToDelete(null)}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              删除
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90" disabled={isLoading}>
+              {isLoading && connectionToDelete ? '删除中...' : '删除'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
