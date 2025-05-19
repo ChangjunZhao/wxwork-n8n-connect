@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash2, PlugZap } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlugZap, CheckCircle2, XCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { WeixinConnection } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 
 interface ConnectionTableProps {
   connections: WeixinConnection[];
@@ -47,6 +48,7 @@ export function ConnectionTable({ connections, onEdit, onDelete }: ConnectionTab
             <TableHead>应用名称</TableHead>
             <TableHead>企业ID</TableHead>
             <TableHead>应用ID</TableHead>
+            <TableHead>n8n Webhook</TableHead>
             <TableHead className="w-[80px] text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
@@ -56,6 +58,19 @@ export function ConnectionTable({ connections, onEdit, onDelete }: ConnectionTab
               <TableCell className="font-medium">{conn.name}</TableCell>
               <TableCell>{conn.corpId}</TableCell>
               <TableCell>{conn.agentId}</TableCell>
+              <TableCell>
+                {conn.n8nWebhookUrl ? (
+                  <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white">
+                    <CheckCircle2 className="mr-1 h-4 w-4" />
+                    已配置
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">
+                    <XCircle className="mr-1 h-4 w-4" />
+                    未配置
+                  </Badge>
+                )}
+              </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

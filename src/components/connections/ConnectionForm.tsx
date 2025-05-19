@@ -1,6 +1,6 @@
 "use client";
 
-import * as z from "zod"; // Added this line
+import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -19,18 +19,19 @@ const formSchema = z.object({
   name: z.string().min(2, {
     message: "应用名称至少需要 2 个字符。",
   }),
-  corpId: z.string().min(5, { 
+  corpId: z.string().min(5, {
     message: "企业ID (CorpID) 必须有效。",
   }),
   agentId: z.string().min(1, {
     message: "应用ID (AgentID) 必须有效。",
   }),
-  token: z.string().min(3, { 
+  token: z.string().min(3, {
     message: "令牌 (Token) 至少需要 3 个字符。",
   }),
-  encodingAESKey: z.string().length(43, { 
+  encodingAESKey: z.string().length(43, {
     message: "消息加解密密钥 (EncodingAESKey) 必须是 43 个字符长。",
   }),
+  n8nWebhookUrl: z.string().url({ message: "请输入有效的 n8n Webhook URL。" }).optional().or(z.literal('')),
 });
 
 type ConnectionFormValues = z.infer<typeof formSchema>;
@@ -50,6 +51,7 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
       agentId: "",
       token: "",
       encodingAESKey: "",
+      n8nWebhookUrl: "",
     },
   });
 
@@ -125,12 +127,25 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="n8nWebhookUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>n8n Webhook 地址 (可选)</FormLabel>
+              <FormControl>
+                <Input type="url" placeholder="例如: http://your-n8n-instance/webhook/..." {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             取消
           </Button>
           <Button type="submit">
-            {initialData ? "保存更改" : "创建连接"}
+            {initialData?.id ? "保存更改" : "创建连接"}
           </Button>
         </div>
       </form>

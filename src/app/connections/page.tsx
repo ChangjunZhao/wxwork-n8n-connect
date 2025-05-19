@@ -48,7 +48,7 @@ export default function ConnectionsPage() {
       setConnections(initialConnections); // Fallback to initial mock data
     }
     setInitialLoadComplete(true);
-  }, [toast]); // toast is stable, initialConnections is constant
+  }, [toast]);
 
   // Save connections to localStorage whenever they change, after initial load
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function ConnectionsPage() {
         });
       }
     }
-  }, [connections, initialLoadComplete, toast]); // toast is stable
+  }, [connections, initialLoadComplete, toast]);
 
   const handleAddConnection = () => {
     setEditingConnection(null);
@@ -95,15 +95,24 @@ export default function ConnectionsPage() {
   };
 
   const handleSubmitConnection = (data: Omit<WeixinConnection, 'id'> & { id?: string }) => {
+    const connectionData = {
+      name: data.name,
+      corpId: data.corpId,
+      agentId: data.agentId,
+      token: data.token,
+      encodingAESKey: data.encodingAESKey,
+      n8nWebhookUrl: data.n8nWebhookUrl || undefined, // Ensure empty string becomes undefined
+    };
+
     if (data.id) { // Editing existing connection
-      setConnections(prev => prev.map(conn => conn.id === data.id ? { ...conn, ...data } : conn));
+      setConnections(prev => prev.map(conn => conn.id === data.id ? { ...conn, ...connectionData, id: data.id! } : conn));
       toast({
         title: "连接已更新",
         description: "企业微信应用连接已成功更新。",
       });
     } else { // Adding new connection
-      const newConnection = { ...data, id: `conn-${Date.now()}-${Math.random().toString(36).substring(2, 5)}` };
-      setConnections(prev => [...prev, newConnection]);
+      const newConnectionWithId = { ...connectionData, id: `conn-${Date.now()}-${Math.random().toString(36).substring(2, 5)}` };
+      setConnections(prev => [...prev, newConnectionWithId]);
       toast({
         title: "连接已添加",
         description: "新的企业微信应用连接已成功添加。",
