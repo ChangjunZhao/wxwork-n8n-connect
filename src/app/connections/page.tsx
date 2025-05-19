@@ -33,17 +33,29 @@ export default function ConnectionsPage() {
     try {
       const response = await fetch('/api/connections');
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMsg = `服务器错误 (HTTP ${response.status})。请检查服务器日志获取更多信息。`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.message) {
+            errorMsg = errorData.message;
+          }
+        } catch (jsonError) {
+          // If parsing JSON fails, stick with the more generic HTTP error
+          console.error("解析错误响应JSON失败:", jsonError);
+        }
+        throw new Error(errorMsg);
       }
       const data: WeixinConnection[] = await response.json();
       setConnections(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("获取连接数据失败:", error);
       toast({
         title: "加载错误",
-        description: "无法从服务器加载连接数据。",
+        description: error.message || "无法从服务器加载连接数据。请检查服务器日志。",
         variant: "destructive",
       });
+      // Set connections to an empty array in case of an error to avoid rendering issues
+      setConnections([]);
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +90,8 @@ export default function ConnectionsPage() {
           const errorData = await response.json().catch(() => ({ message: '删除失败，请稍后再试。' }));
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
-        setConnections(prev => prev.filter(conn => conn.id !== connectionToDelete));
+        // Instead of filtering, re-fetch to ensure data consistency
+        await fetchConnections();
         toast({
           title: "连接已删除",
           description: "企业微信应用连接已成功删除。",
@@ -103,11 +116,9 @@ export default function ConnectionsPage() {
     const url = isEditing ? `/api/connections/${data.id}` : '/api/connections';
     const method = isEditing ? 'PUT' : 'POST';
 
-    // Ensure n8nWebhookUrl is either a valid URL or an empty string (which Prisma will convert to null if field is optional String?)
-    // Or handle it in the API to convert empty string to null. For now, we pass it as is.
     const payload = {
       ...data,
-      n8nWebhookUrl: data.n8nWebhookUrl || null, // Send null if empty, Prisma handles this for optional fields
+      n8nWebhookUrl: data.n8nWebhookUrl || null, 
     };
     
     try {
@@ -122,8 +133,7 @@ export default function ConnectionsPage() {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      // const savedConnection: WeixinConnection = await response.json();
-      await fetchConnections(); // Re-fetch all connections to update the list
+      await fetchConnections(); 
 
       toast({
         title: isEditing ? "连接已更新" : "连接已添加",
@@ -147,7 +157,7 @@ export default function ConnectionsPage() {
         <h2 className="text-3xl font-bold tracking-tight">管理连接</h2>
         <div className="flex items-center space-x-2">
           <Button onClick={fetchConnections} variant="outline" disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading && connections.length > 0 ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             刷新
           </Button>
           <Button onClick={handleAddConnection}>
