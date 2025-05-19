@@ -1,13 +1,12 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ConnectionTable } from "@/components/connections/ConnectionTable";
 import { ConnectionDialog } from "@/components/connections/ConnectionDialog";
-import { PlusCircle, AlertTriangle } from "lucide-react";
-import type { WeixinConnection } from "@/lib/types";
-import { initialConnections } from "@/lib/mockData";
+import { PlusCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import type { WeixinConnection, WeixinConnectionFormData } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -26,45 +25,33 @@ export default function ConnectionsPage() {
   const [editingConnection, setEditingConnection] = useState<WeixinConnection | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [connectionToDelete, setConnectionToDelete] = useState<string | null>(null);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Load connections from localStorage or use initial mock data
-  useEffect(() => {
+  const fetchConnections = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const storedConnections = localStorage.getItem('weixinConnections');
-      if (storedConnections) {
-        setConnections(JSON.parse(storedConnections));
-      } else {
-        setConnections(initialConnections);
+      const response = await fetch('/api/connections');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      const data: WeixinConnection[] = await response.json();
+      setConnections(data);
     } catch (error) {
-      console.error("从 localStorage 加载连接数据失败:", error);
+      console.error("获取连接数据失败:", error);
       toast({
         title: "加载错误",
-        description: "无法从存储中加载连接数据，已使用默认数据。",
+        description: "无法从服务器加载连接数据。",
         variant: "destructive",
       });
-      setConnections(initialConnections); // Fallback to initial mock data
+    } finally {
+      setIsLoading(false);
     }
-    setInitialLoadComplete(true);
   }, [toast]);
 
-  // Save connections to localStorage whenever they change, after initial load
   useEffect(() => {
-    if (initialLoadComplete) {
-      try {
-        localStorage.setItem('weixinConnections', JSON.stringify(connections));
-      } catch (error) {
-        console.error("保存连接数据到 localStorage 失败:", error);
-        toast({
-          title: "保存错误",
-          description: "无法将连接数据保存到存储。",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [connections, initialLoadComplete, toast]);
+    fetchConnections();
+  }, [fetchConnections]);
 
   const handleAddConnection = () => {
     setEditingConnection(null);
@@ -81,61 +68,107 @@ export default function ConnectionsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (connectionToDelete) {
-      setConnections(prev => prev.filter(conn => conn.id !== connectionToDelete));
-      toast({
-        title: "连接已删除",
-        description: "企业微信应用连接已成功删除。",
-        variant: "default",
-      });
-      setConnectionToDelete(null);
+      try {
+        const response = await fetch(`/api/connections/${connectionToDelete}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: '删除失败，请稍后再试。' }));
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+        setConnections(prev => prev.filter(conn => conn.id !== connectionToDelete));
+        toast({
+          title: "连接已删除",
+          description: "企业微信应用连接已成功删除。",
+          variant: "default",
+        });
+      } catch (error: any) {
+        console.error("删除连接失败:", error);
+        toast({
+          title: "删除失败",
+          description: error.message || "删除连接时发生错误。",
+          variant: "destructive",
+        });
+      } finally {
+        setConnectionToDelete(null);
+        setIsDeleteDialogOpen(false);
+      }
     }
-    setIsDeleteDialogOpen(false);
   };
 
-  const handleSubmitConnection = (data: Omit<WeixinConnection, 'id'> & { id?: string }) => {
-    const connectionData = {
-      name: data.name,
-      corpId: data.corpId,
-      agentId: data.agentId,
-      token: data.token,
-      encodingAESKey: data.encodingAESKey,
-      n8nWebhookUrl: data.n8nWebhookUrl || undefined, // Ensure empty string becomes undefined
-    };
+  const handleSubmitConnection = async (data: WeixinConnectionFormData) => {
+    const isEditing = !!data.id;
+    const url = isEditing ? `/api/connections/${data.id}` : '/api/connections';
+    const method = isEditing ? 'PUT' : 'POST';
 
-    if (data.id) { // Editing existing connection
-      setConnections(prev => prev.map(conn => conn.id === data.id ? { ...conn, ...connectionData, id: data.id! } : conn));
-      toast({
-        title: "连接已更新",
-        description: "企业微信应用连接已成功更新。",
+    // Ensure n8nWebhookUrl is either a valid URL or an empty string (which Prisma will convert to null if field is optional String?)
+    // Or handle it in the API to convert empty string to null. For now, we pass it as is.
+    const payload = {
+      ...data,
+      n8nWebhookUrl: data.n8nWebhookUrl || null, // Send null if empty, Prisma handles this for optional fields
+    };
+    
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-    } else { // Adding new connection
-      const newConnectionWithId = { ...connectionData, id: `conn-${Date.now()}-${Math.random().toString(36).substring(2, 5)}` };
-      setConnections(prev => [...prev, newConnectionWithId]);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: '操作失败，请稍后再试。'}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      // const savedConnection: WeixinConnection = await response.json();
+      await fetchConnections(); // Re-fetch all connections to update the list
+
       toast({
-        title: "连接已添加",
-        description: "新的企业微信应用连接已成功添加。",
+        title: isEditing ? "连接已更新" : "连接已添加",
+        description: `企业微信应用连接已成功${isEditing ? '更新' : '添加'}。`,
+      });
+      setIsDialogOpen(false);
+      setEditingConnection(null);
+    } catch (error: any) {
+      console.error("保存连接失败:", error);
+      toast({
+        title: "保存失败",
+        description: error.message || "保存连接时发生错误。",
+        variant: "destructive",
       });
     }
-    setIsDialogOpen(false);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between">
         <h2 className="text-3xl font-bold tracking-tight">管理连接</h2>
-        <Button onClick={handleAddConnection}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          添加新连接
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button onClick={fetchConnections} variant="outline" disabled={isLoading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading && connections.length > 0 ? 'animate-spin' : ''}`} />
+            刷新
+          </Button>
+          <Button onClick={handleAddConnection}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            添加新连接
+          </Button>
+        </div>
       </div>
 
-      <ConnectionTable
-        connections={connections}
-        onEdit={handleEditConnection}
-        onDelete={handleDeleteConnection}
-      />
+      {isLoading && connections.length === 0 ? (
+         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+          <RefreshCw className="h-10 w-10 animate-spin text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">正在加载连接数据...</p>
+        </div>
+      ) : (
+        <ConnectionTable
+          connections={connections}
+          onEdit={handleEditConnection}
+          onDelete={handleDeleteConnection}
+        />
+      )}
 
       <ConnectionDialog
         open={isDialogOpen}
@@ -154,7 +187,7 @@ export default function ConnectionsPage() {
               </div>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              此操作无法撤销。这将永久删除该连接并移除其配置。
+              此操作无法撤销。这将永久从数据库中删除该连接。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
