@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -25,25 +26,45 @@ export default function ConnectionsPage() {
   const [editingConnection, setEditingConnection] = useState<WeixinConnection | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [connectionToDelete, setConnectionToDelete] = useState<string | null>(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const { toast } = useToast();
 
   // Load connections from localStorage or use initial mock data
   useEffect(() => {
-    const storedConnections = localStorage.getItem('weixinConnections');
-    if (storedConnections) {
-      setConnections(JSON.parse(storedConnections));
-    } else {
-      setConnections(initialConnections);
+    try {
+      const storedConnections = localStorage.getItem('weixinConnections');
+      if (storedConnections) {
+        setConnections(JSON.parse(storedConnections));
+      } else {
+        setConnections(initialConnections);
+      }
+    } catch (error) {
+      console.error("从 localStorage 加载连接数据失败:", error);
+      toast({
+        title: "加载错误",
+        description: "无法从存储中加载连接数据，已使用默认数据。",
+        variant: "destructive",
+      });
+      setConnections(initialConnections); // Fallback to initial mock data
     }
-  }, []);
+    setInitialLoadComplete(true);
+  }, [toast]); // toast is stable, initialConnections is constant
 
-  // Save connections to localStorage whenever they change
+  // Save connections to localStorage whenever they change, after initial load
   useEffect(() => {
-    if (connections.length > 0 || localStorage.getItem('weixinConnections')) { // only save if there's data or it was loaded
+    if (initialLoadComplete) {
+      try {
         localStorage.setItem('weixinConnections', JSON.stringify(connections));
+      } catch (error) {
+        console.error("保存连接数据到 localStorage 失败:", error);
+        toast({
+          title: "保存错误",
+          description: "无法将连接数据保存到存储。",
+          variant: "destructive",
+        });
+      }
     }
-  }, [connections]);
-
+  }, [connections, initialLoadComplete, toast]); // toast is stable
 
   const handleAddConnection = () => {
     setEditingConnection(null);
@@ -81,7 +102,7 @@ export default function ConnectionsPage() {
         description: "企业微信应用连接已成功更新。",
       });
     } else { // Adding new connection
-      const newConnection = { ...data, id: `conn-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` };
+      const newConnection = { ...data, id: `conn-${Date.now()}-${Math.random().toString(36).substring(2, 5)}` };
       setConnections(prev => [...prev, newConnection]);
       toast({
         title: "连接已添加",
