@@ -22,9 +22,9 @@ interface AppShellProps {
 }
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/connections', label: 'Connections', icon: PlugZap },
-  { href: '/logs', label: 'Event Logs', icon: History },
+  { href: '/', label: '仪表盘', icon: LayoutDashboard },
+  { href: '/connections', label: '连接管理', icon: PlugZap },
+  { href: '/logs', label: '事件日志', icon: History },
 ];
 
 export const AppShell: FC<AppShellProps> = ({ children }) => {
@@ -37,7 +37,7 @@ export const AppShell: FC<AppShellProps> = ({ children }) => {
           <Link href="/" className="flex items-center gap-2">
             <Webhook className="h-7 w-7 text-primary" />
             <h1 className="text-xl font-semibold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-              Weixin Trigger
+              企业微信触发器
             </h1>
           </Link>
         </SidebarHeader>
@@ -69,7 +69,7 @@ export const AppShell: FC<AppShellProps> = ({ children }) => {
           </div>
           <Button variant="ghost" size="icon">
             <Settings className="h-5 w-5" />
-            <span className="sr-only">Settings</span>
+            <span className="sr-only">设置</span>
           </Button>
         </header>
         <main className="flex-1_ overflow-auto p-4 sm:p-6">

@@ -64,8 +64,8 @@ export default function ConnectionsPage() {
     if (connectionToDelete) {
       setConnections(prev => prev.filter(conn => conn.id !== connectionToDelete));
       toast({
-        title: "Connection Deleted",
-        description: "The Weixin App connection has been successfully deleted.",
+        title: "连接已删除",
+        description: "企业微信应用连接已成功删除。",
         variant: "default",
       });
       setConnectionToDelete(null);
@@ -77,15 +77,15 @@ export default function ConnectionsPage() {
     if (data.id) { // Editing existing connection
       setConnections(prev => prev.map(conn => conn.id === data.id ? { ...conn, ...data } : conn));
       toast({
-        title: "Connection Updated",
-        description: "The Weixin App connection has been successfully updated.",
+        title: "连接已更新",
+        description: "企业微信应用连接已成功更新。",
       });
     } else { // Adding new connection
       const newConnection = { ...data, id: `conn-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` };
       setConnections(prev => [...prev, newConnection]);
       toast({
-        title: "Connection Added",
-        description: "The new Weixin App connection has been successfully added.",
+        title: "连接已添加",
+        description: "新的企业微信应用连接已成功添加。",
       });
     }
     setIsDialogOpen(false);
@@ -94,10 +94,10 @@ export default function ConnectionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Manage Connections</h2>
+        <h2 className="text-3xl font-bold tracking-tight">管理连接</h2>
         <Button onClick={handleAddConnection}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add New Connection
+          添加新连接
         </Button>
       </div>
 
@@ -120,18 +120,17 @@ export default function ConnectionsPage() {
             <AlertDialogTitle>
               <div className="flex items-center">
                 <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
-                Are you sure you want to delete this connection?
+                您确定要删除此连接吗？
               </div>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              connection and remove its configuration.
+              此操作无法撤销。这将永久删除该连接并移除其配置。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConnectionToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setConnectionToDelete(null)}>取消</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
+              删除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

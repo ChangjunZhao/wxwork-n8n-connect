@@ -31,9 +31,9 @@ export function ConnectionDialog({ open, onOpenChange, connection, onSubmit }: C
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>{connection ? "Edit Connection" : "Add New Connection"}</DialogTitle>
+          <DialogTitle>{connection ? "编辑连接" : "添加新连接"}</DialogTitle>
           <DialogDescription>
-            {connection ? "Update the details of your Weixin Work application." : "Enter the details for your new Weixin Work application connection."}
+            {connection ? "更新您的企业微信应用详情。" : "输入新的企业微信应用连接详情。"}
           </DialogDescription>
         </DialogHeader>
         <ConnectionForm

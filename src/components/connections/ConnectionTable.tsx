@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlugZap } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,9 +31,9 @@ export function ConnectionTable({ connections, onEdit, onDelete }: ConnectionTab
         <div className="mb-4 rounded-full bg-muted p-3">
           <PlugZap className="h-10 w-10 text-muted-foreground" />
         </div>
-        <h3 className="text-xl font-semibold">No Connections Yet</h3>
+        <h3 className="text-xl font-semibold">暂无连接</h3>
         <p className="text-sm text-muted-foreground">
-          Add your first Weixin Work application connection to get started.
+          添加您的第一个企业微信应用连接以开始使用。
         </p>
       </div>
     );
@@ -44,10 +44,10 @@ export function ConnectionTable({ connections, onEdit, onDelete }: ConnectionTab
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>App Name</TableHead>
-            <TableHead>CorpID</TableHead>
-            <TableHead>AgentID</TableHead>
-            <TableHead className="w-[80px] text-right">Actions</TableHead>
+            <TableHead>应用名称</TableHead>
+            <TableHead>企业ID</TableHead>
+            <TableHead>应用ID</TableHead>
+            <TableHead className="w-[80px] text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -61,17 +61,17 @@ export function ConnectionTable({ connections, onEdit, onDelete }: ConnectionTab
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
                       <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">操作</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => onEdit(conn)}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Edit
+                      编辑
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onDelete(conn.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      删除
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -83,5 +83,3 @@ export function ConnectionTable({ connections, onEdit, onDelete }: ConnectionTab
     </div>
   );
 }
-// Placeholder for PlugZap icon if not already imported
-import { PlugZap } from 'lucide-react';

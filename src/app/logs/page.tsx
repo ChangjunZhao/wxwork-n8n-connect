@@ -28,10 +28,10 @@ export default function EventLogsPage() {
       const newMockLog: EventLog = {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        connectionName: 'System Monitor',
+        connectionName: 'System Monitor', // This is mock data, consider if it needs translation in a real app
         eventType: 'refresh_logs',
         status: 'Info',
-        details: 'Logs refreshed manually.',
+        details: '日志已手动刷新。', // Translated detail
       };
       const updatedLogs = [newMockLog, ...logs].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 20); // Keep it to 20 logs for demo
       setLogs(updatedLogs);
@@ -41,7 +41,7 @@ export default function EventLogsPage() {
   
   const handleDownloadLogs = () => {
     // Basic CSV download for example
-    const headers = "ID,Timestamp,Connection Name,Event Type,Status,Details\n";
+    const headers = "ID,时间戳,应用名称,事件类型,状态,详情\n"; // Translated headers
     const csvContent = logs.map(log => 
       `${log.id},${log.timestamp},"${log.connectionName.replace(/"/g, '""')}","${log.eventType.replace(/"/g, '""')}",${log.status},"${log.details.replace(/"/g, '""')}"`
     ).join("\n");
@@ -62,15 +62,15 @@ export default function EventLogsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Event Logs</h2>
+        <h2 className="text-3xl font-bold tracking-tight">事件日志</h2>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={handleDownloadLogs} disabled={logs.length === 0}>
             <Download className="mr-2 h-4 w-4" />
-            Download Logs
+            下载日志
           </Button>
           <Button onClick={handleRefreshLogs} disabled={isLoading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Refreshing...' : 'Refresh Logs'}
+            {isLoading ? '刷新中...' : '刷新日志'}
           </Button>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function EventLogsPage() {
       {isLoading && logs.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
           <RefreshCw className="h-10 w-10 animate-spin text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading logs...</p>
+          <p className="mt-2 text-sm text-muted-foreground">正在加载日志...</p>
         </div>
       ) : (
         <EventLogTable logs={logs} />

@@ -17,19 +17,19 @@ import type { WeixinConnection } from "@/lib/types";
 
 const formSchema = z.object({
   name: z.string().min(2, {
-    message: "App name must be at least 2 characters.",
+    message: "应用名称至少需要 2 个字符。",
   }),
-  corpId: z.string().min(5, { // Typically wwCorpId... or similar
-    message: "CorpID must be valid.",
+  corpId: z.string().min(5, { 
+    message: "企业ID (CorpID) 必须有效。",
   }),
   agentId: z.string().min(1, {
-    message: "AgentID must be valid.",
+    message: "应用ID (AgentID) 必须有效。",
   }),
-  token: z.string().min(3, { // Weixin tokens are usually 3-32 chars
-    message: "Token must be at least 3 characters.",
+  token: z.string().min(3, { 
+    message: "令牌 (Token) 至少需要 3 个字符。",
   }),
-  encodingAESKey: z.string().length(43, { // EncodingAESKey is always 43 characters
-    message: "EncodingAESKey must be 43 characters long.",
+  encodingAESKey: z.string().length(43, { 
+    message: "消息加解密密钥 (EncodingAESKey) 必须是 43 个字符长。",
   }),
 });
 
@@ -65,9 +65,9 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>App Name</FormLabel>
+              <FormLabel>应用名称</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., HR Portal Bot" {...field} />
+                <Input placeholder="例如：人事门户机器人" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -78,9 +78,9 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
           name="corpId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>CorpID (企业ID)</FormLabel>
+              <FormLabel>企业ID (CorpID)</FormLabel>
               <FormControl>
-                <Input placeholder="Your Weixin Work CorpID" {...field} />
+                <Input placeholder="您的企业微信 CorpID" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -91,9 +91,9 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
           name="agentId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>AgentID (应用ID)</FormLabel>
+              <FormLabel>应用ID (AgentID)</FormLabel>
               <FormControl>
-                <Input placeholder="Your App's AgentID" {...field} />
+                <Input placeholder="您的应用 AgentID" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -104,9 +104,9 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
           name="token"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Token</FormLabel>
+              <FormLabel>令牌 (Token)</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Your configured Token" {...field} />
+                <Input type="password" placeholder="您配置的 Token" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -117,9 +117,9 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
           name="encodingAESKey"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>EncodingAESKey</FormLabel>
+              <FormLabel>消息加解密密钥 (EncodingAESKey)</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Your configured EncodingAESKey" {...field} />
+                <Input type="password" placeholder="您配置的 EncodingAESKey" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -127,10 +127,10 @@ export function ConnectionForm({ initialData, onSubmit, onCancel }: ConnectionFo
         />
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            取消
           </Button>
           <Button type="submit">
-            {initialData ? "Save Changes" : "Create Connection"}
+            {initialData ? "保存更改" : "创建连接"}
           </Button>
         </div>
       </form>
