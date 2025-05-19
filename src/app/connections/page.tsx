@@ -40,24 +40,20 @@ export default function ConnectionsPage() {
             errorMsg = errorData.message;
           }
         } catch (jsonError) {
-          // If parsing JSON fails, stick with the more generic HTTP error
           console.error("解析错误响应JSON失败:", jsonError);
         }
-        // Directly handle the error display and state update
         toast({
           title: "加载错误",
           description: errorMsg,
           variant: "destructive",
         });
         setConnections([]);
-        setIsLoading(false); // Ensure loading state is updated
-        return; // Exit as we've handled the error path
+        // No early return here, allow finally to execute
+      } else {
+        const data: WeixinConnection[] = await response.json();
+        setConnections(data);
       }
-      const data: WeixinConnection[] = await response.json();
-      setConnections(data);
     } catch (error: any) {
-      // This catch block will now primarily handle network errors or unexpected issues
-      // not already handled by the !response.ok check.
       console.error("获取连接数据失败 (catch):", error);
       toast({
         title: "加载错误",
@@ -66,14 +62,9 @@ export default function ConnectionsPage() {
       });
       setConnections([]);
     } finally {
-      // Ensure isLoading is always set to false, even if an early return happened.
-      // However, if we returned early, it was already set.
-      // This can be simplified if the early return always sets isLoading.
-      if (isLoading) { // Only set if not already set by an error path
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
-  }, [toast, isLoading]); // Added isLoading to dependency array as it's used in finally
+  }, [toast]); // Removed isLoading from dependency array
 
   useEffect(() => {
     fetchConnections();
@@ -96,7 +87,7 @@ export default function ConnectionsPage() {
 
   const confirmDelete = async () => {
     if (connectionToDelete) {
-      setIsLoading(true); // Indicate loading during delete
+      setIsLoading(true); 
       try {
         const response = await fetch(`/api/connections/${connectionToDelete}`, {
           method: 'DELETE',
@@ -105,7 +96,7 @@ export default function ConnectionsPage() {
           const errorData = await response.json().catch(() => ({ message: '删除失败，请稍后再试。' }));
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
-        await fetchConnections(); // Re-fetch to ensure data consistency
+        await fetchConnections(); 
         toast({
           title: "连接已删除",
           description: "企业微信应用连接已成功删除。",
@@ -121,7 +112,7 @@ export default function ConnectionsPage() {
       } finally {
         setConnectionToDelete(null);
         setIsDeleteDialogOpen(false);
-        setIsLoading(false); // End loading
+        setIsLoading(false); 
       }
     }
   };
@@ -136,7 +127,7 @@ export default function ConnectionsPage() {
       n8nWebhookUrl: data.n8nWebhookUrl || null, 
     };
     
-    setIsLoading(true); // Indicate loading
+    setIsLoading(true); 
     try {
       const response = await fetch(url, {
         method: method,
@@ -165,7 +156,7 @@ export default function ConnectionsPage() {
         variant: "destructive",
       });
     } finally {
-        setIsLoading(false); // End loading
+        setIsLoading(false); 
     }
   };
 
@@ -185,7 +176,7 @@ export default function ConnectionsPage() {
         </div>
       </div>
 
-      {isLoading && connections.length === 0 && !toast ? ( // Check toast to avoid showing loading if an error toast is already up
+      {isLoading && connections.length === 0 && !toast ? ( 
          <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
           <RefreshCw className="h-10 w-10 animate-spin text-muted-foreground" />
           <p className="mt-2 text-sm text-muted-foreground">正在加载连接数据...</p>
