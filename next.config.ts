@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // 启用 standalone 模式以优化 Docker 镜像
+  output: 'standalone',
+  // 实验性功能
+  experimental: {
+    // 启用 turbo 模式（如果需要）
+    turbo: {
+      rules: {
+        // 自定义规则
+      },
+    },
+  },
 };
 
 export default nextConfig;

@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import type { WeixinConnection } from '@/lib/types';
@@ -14,17 +13,68 @@ const connectionSchema = z.object({
   n8nWebhookUrl: z.string().url("请输入有效的 n8n Webhook URL。").optional().nullable(),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const connections = await prisma.weixinConnection.findMany({
-      orderBy: {
-        createdAt: 'desc',
+    const { searchParams } = new URL(request.url);
+    
+    // 分页参数
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20')));
+    const skip = (page - 1) * limit;
+    
+    // 搜索参数
+    const search = searchParams.get('search')?.trim() || '';
+    const hasN8nWebhook = searchParams.get('hasN8nWebhook');
+    
+    // 构建查询条件
+    const where: any = {};
+    
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { corpId: { contains: search } },
+        { agentId: { contains: search } },
+      ];
+    }
+    
+    if (hasN8nWebhook === 'true') {
+      where.n8nWebhookUrl = { not: null };
+    } else if (hasN8nWebhook === 'false') {
+      where.n8nWebhookUrl = null;
+    }
+    
+    // 获取总数和分页数据
+    const [total, connections] = await prisma.$transaction([
+      prisma.weixinConnection.count({ where }),
+      prisma.weixinConnection.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
+    
+    const totalPages = Math.ceil(total / limit);
+    
+    return NextResponse.json({
+      connections,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
       },
     });
-    return NextResponse.json(connections);
-  } catch (error) {
+  } catch (error: any) {
     console.error("获取连接列表失败:", error);
-    return NextResponse.json({ message: "获取连接列表失败" }, { status: 500 });
+    return NextResponse.json({ 
+      message: "获取连接列表失败", 
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined 
+    }, { status: 500 });
   }
 }
 

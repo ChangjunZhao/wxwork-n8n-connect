@@ -1,11 +1,11 @@
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-arm64-openssl-1.1.x"]
 }
 
 model WeixinConnection {
@@ -16,9 +16,28 @@ model WeixinConnection {
   token          String
   encodingAESKey String
   n8nWebhookUrl  String? // Optional
+  eventLogs     EventLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([corpId, agentId], name: "corpId_agentId_unique_constraint")
+}
+
+model EventLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  connectionId String
+  connection   WeixinConnection @relation(fields: [connectionId], references: [id])
+  eventType    String
+  status       String
+  details      String   @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([timestamp])
+  @@index([connectionId])
+  @@index([eventType])
+  @@index([status])
 }

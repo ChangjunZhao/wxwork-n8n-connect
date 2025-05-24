@@ -1,12 +1,13 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ConnectionTable } from "@/components/connections/ConnectionTable";
 import { ConnectionDialog } from "@/components/connections/ConnectionDialog";
+import { ConnectionFilters, type FilterParams } from "@/components/connections/ConnectionFilters";
+import { ConnectionPagination } from "@/components/connections/ConnectionPagination";
 import { PlusCircle, AlertTriangle, RefreshCw } from "lucide-react";
-import type { WeixinConnection, WeixinConnectionFormData } from "@/lib/types";
+import type { WeixinConnection, WeixinConnectionFormData, ConnectionsResponse } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -20,7 +21,23 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function ConnectionsPage() {
-  const [connections, setConnections] = useState<WeixinConnection[]>([]);
+  const [connectionsData, setConnectionsData] = useState<ConnectionsResponse>({
+    connections: [],
+    pagination: {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    }
+  });
+  const [filters, setFilters] = useState<FilterParams>({
+    search: '',
+    hasN8nWebhook: 'all',
+    page: 1,
+    limit: 10,
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<WeixinConnection | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -28,10 +45,22 @@ export default function ConnectionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchConnections = useCallback(async () => {
+  const fetchConnections = useCallback(async (currentFilters: FilterParams = filters) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/connections');
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', currentFilters.page.toString());
+      searchParams.set('limit', currentFilters.limit.toString());
+      
+      if (currentFilters.search) {
+        searchParams.set('search', currentFilters.search);
+      }
+      
+      if (currentFilters.hasN8nWebhook !== 'all') {
+        searchParams.set('hasN8nWebhook', currentFilters.hasN8nWebhook);
+      }
+
+      const response = await fetch(`/api/connections?${searchParams.toString()}`);
       if (!response.ok) {
         let errorMsg = `服务器错误 (HTTP ${response.status})。请检查服务器日志获取更多信息。`;
         try {
@@ -47,11 +76,20 @@ export default function ConnectionsPage() {
           description: errorMsg,
           variant: "destructive",
         });
-        setConnections([]);
-        // No early return here, allow finally to execute
+        setConnectionsData({
+          connections: [],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          }
+        });
       } else {
-        const data: WeixinConnection[] = await response.json();
-        setConnections(data);
+        const data: ConnectionsResponse = await response.json();
+        setConnectionsData(data);
       }
     } catch (error: any) {
       console.error("获取连接数据失败 (catch):", error);
@@ -60,15 +98,33 @@ export default function ConnectionsPage() {
         description: error.message || "无法从服务器加载连接数据。请检查网络或服务器日志。",
         variant: "destructive",
       });
-      setConnections([]);
+      setConnectionsData({
+        connections: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        }
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]); // Removed isLoading from dependency array
+  }, [toast]); 
 
   useEffect(() => {
-    fetchConnections();
-  }, [fetchConnections]);
+    fetchConnections(filters);
+  }, [filters, fetchConnections]);
+
+  const handleFiltersChange = (newFilters: FilterParams) => {
+    setFilters(newFilters);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setFilters(prev => ({ ...prev, page: newPage }));
+  };
 
   const handleAddConnection = () => {
     setEditingConnection(null);
@@ -165,7 +221,7 @@ export default function ConnectionsPage() {
       <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between">
         <h2 className="text-3xl font-bold tracking-tight">管理连接</h2>
         <div className="flex items-center space-x-2">
-          <Button onClick={fetchConnections} variant="outline" disabled={isLoading}>
+          <Button onClick={() => fetchConnections()} variant="outline" disabled={isLoading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             刷新
           </Button>
@@ -176,17 +232,32 @@ export default function ConnectionsPage() {
         </div>
       </div>
 
-      {isLoading && connections.length === 0 && !toast ? ( 
+      {/* 搜索和筛选 */}
+      <ConnectionFilters 
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        totalResults={connectionsData.pagination.total}
+      />
+
+      {isLoading && connectionsData.connections.length === 0 ? ( 
          <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
           <RefreshCw className="h-10 w-10 animate-spin text-muted-foreground" />
           <p className="mt-2 text-sm text-muted-foreground">正在加载连接数据...</p>
         </div>
       ) : (
-        <ConnectionTable
-          connections={connections}
-          onEdit={handleEditConnection}
-          onDelete={handleDeleteConnection}
-        />
+        <>
+          <ConnectionTable
+            connections={connectionsData.connections}
+            onEdit={handleEditConnection}
+            onDelete={handleDeleteConnection}
+          />
+          
+          {/* 分页 */}
+          <ConnectionPagination
+            pagination={connectionsData.pagination}
+            onPageChange={handlePageChange}
+          />
+        </>
       )}
 
       <ConnectionDialog
@@ -199,20 +270,21 @@ export default function ConnectionsPage() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              <div className="flex items-center">
-                <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
-                您确定要删除此连接吗？
-              </div>
+            <AlertDialogTitle className="flex items-center">
+              <AlertTriangle className="mr-2 h-5 w-5 text-destructive" />
+              确认删除连接
             </AlertDialogTitle>
             <AlertDialogDescription>
-              此操作无法撤销。这将永久从数据库中删除该连接。
+              此操作无法撤销。这将永久删除企业微信应用连接及其所有相关的事件日志。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConnectionToDelete(null)}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90" disabled={isLoading}>
-              {isLoading && connectionToDelete ? '删除中...' : '删除'}
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              删除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

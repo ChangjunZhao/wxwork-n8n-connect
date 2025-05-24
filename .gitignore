@@ -43,3 +43,18 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# Project specific
+test-*.js
+verify-*.js
+demo-*.md
+connections-pagination-feature.md
+docker-test.js
+.modified
+
+# Logs
+logs/
+*.log
+
+# Docker
+.dockerignore.bak

@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
@@ -75,9 +74,21 @@ export async function PUT(request: Request, { params }: RouteContext) {
 export async function DELETE(request: Request, { params }: RouteContext) {
   const { id } = params;
   try {
-    await prisma.weixinConnection.delete({
-      where: { id },
+    // 使用事务确保数据一致性
+    await prisma.$transaction(async (tx) => {
+      // 先删除所有相关的事件日志
+      await tx.eventLog.deleteMany({
+        where: {
+          connectionId: id
+        }
+      });
+      
+      // 然后删除连接
+      await tx.weixinConnection.delete({
+        where: { id },
+      });
     });
+    
     return NextResponse.json({ message: "连接已删除" }, { status: 200 });
   } catch (error: any) {
     console.error(`删除连接 ${id} 失败:`, error);

@@ -17,12 +17,46 @@ export type WeixinConnectionFormData = Omit<WeixinConnection, 'id' | 'createdAt'
   id?: string;
 };
 
+// Pagination response for connections
+export interface ConnectionPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface ConnectionsResponse {
+  connections: WeixinConnection[];
+  pagination: ConnectionPagination;
+}
 
 export interface EventLog {
   id: string;
   timestamp: string;
-  connectionName: string;
+  connectionId: string;
+  connection: {
+    name: string;
+    corpId?: string;
+    agentId?: string;
+  };
   eventType: string;
   status: 'Success' | 'Error' | 'Processing' | 'Info';
   details: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LogPagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface LogsResponse {
+  logs: EventLog[];
+  pagination: LogPagination;
 }

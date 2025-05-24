@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # 企业微信集成平台应用 - 开发环境
+  wework-platform-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    ports:
+      - "9002:9002"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=mysql://wework:wework123@mysql:3306/wework_dev
+      - NEXT_TELEMETRY_DISABLED=1
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - wework-dev-network
+    restart: unless-stopped
+    volumes:
+      # 挂载源代码以支持热重载
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+  # MySQL 数据库 - 开发环境
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=wework_dev
+      - MYSQL_USER=wework
+      - MYSQL_PASSWORD=wework123
+      - MYSQL_ROOT_HOST=%
+    ports:
+      - "3307:3306"  # 使用不同端口避免冲突
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    networks:
+      - wework-dev-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wework", "-pwework123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis 缓存 - 开发环境
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"  # 使用不同端口避免冲突
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - wework-dev-network
+    restart: unless-stopped
+
+  # Adminer 数据库管理工具
+  adminer:
+    image: adminer
+    ports:
+      - "8081:8080"  # 使用不同端口避免冲突
+    networks:
+      - wework-dev-network
+    restart: unless-stopped
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  wework-dev-network:
+    driver: bridge 

@@ -11,9 +11,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { EventLog } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale'; // Import Chinese locale
+import { zhCN } from 'date-fns/locale';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { History } from "lucide-react";
+import { History, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface EventLogTableProps {
   logs: EventLog[];
@@ -45,9 +53,57 @@ const StatusBadge = ({ status }: { status: EventLog['status'] }) => {
   }
 };
 
+const LogDetails = ({ log }: { log: EventLog }) => {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">时间</h4>
+          <p>{new Date(log.timestamp).toLocaleString('zh-CN')}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">状态</h4>
+          <StatusBadge status={log.status} />
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">应用名称</h4>
+          <p>{log.connection.name}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">事件类型</h4>
+          <p>{log.eventType}</p>
+        </div>
+        {log.connection.corpId && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">企业ID</h4>
+            <p>{log.connection.corpId}</p>
+          </div>
+        )}
+        {log.connection.agentId && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">应用ID</h4>
+            <p>{log.connection.agentId}</p>
+          </div>
+        )}
+      </div>
+      <div>
+        <h4 className="text-sm font-medium text-muted-foreground">详情</h4>
+        <p className="mt-1 whitespace-pre-wrap">{log.details}</p>
+      </div>
+      {log.metadata && Object.keys(log.metadata).length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">元数据</h4>
+          <pre className="mt-1 p-2 bg-muted rounded-md overflow-auto text-sm">
+            {JSON.stringify(log.metadata, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export function EventLogTable({ logs }: EventLogTableProps) {
-   if (logs.length === 0) {
+  if (logs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
         <div className="mb-4 rounded-full bg-muted p-3">
@@ -72,6 +128,7 @@ export function EventLogTable({ logs }: EventLogTableProps) {
               <TableHead className="w-[150px]">事件类型</TableHead>
               <TableHead className="w-[120px]">状态</TableHead>
               <TableHead>详情</TableHead>
+              <TableHead className="w-[80px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -80,12 +137,30 @@ export function EventLogTable({ logs }: EventLogTableProps) {
                 <TableCell>
                   {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: zhCN })}
                 </TableCell>
-                <TableCell className="font-medium">{log.connectionName}</TableCell>
+                <TableCell className="font-medium">{log.connection.name}</TableCell>
                 <TableCell>{log.eventType}</TableCell>
                 <TableCell>
                   <StatusBadge status={log.status} />
                 </TableCell>
-                <TableCell className="max-w-md truncate" title={log.details}>{log.details}</TableCell>
+                <TableCell className="max-w-md truncate" title={log.details}>
+                  {log.details}
+                </TableCell>
+                <TableCell>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">查看详情</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>日志详情</DialogTitle>
+                      </DialogHeader>
+                      <LogDetails log={log} />
+                    </DialogContent>
+                  </Dialog>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

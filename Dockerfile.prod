@@ -1,0 +1,99 @@
+# 生产环境 Dockerfile for 企业微信集成平台
+FROM node:22-alpine AS base
+
+# 安装基础依赖，包括OpenSSL
+RUN apk add --no-cache openssl openssl-dev \
+    && rm -rf /var/cache/apk/*
+
+# 安装依赖阶段
+FROM base AS deps
+RUN apk add --no-cache libc6-compat openssl openssl-dev \
+    && rm -rf /var/cache/apk/*
+WORKDIR /app
+
+# 复制依赖文件
+COPY package.json package-lock.json ./
+# 复制 Prisma schema 文件
+COPY prisma ./prisma
+
+# 安装生产依赖
+RUN npm ci --only=production && npm cache clean --force
+
+# 安装开发依赖用于构建
+FROM base AS build-deps
+RUN apk add --no-cache libc6-compat openssl openssl-dev \
+    && rm -rf /var/cache/apk/*
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+
+# 安装所有依赖（包括开发依赖）
+RUN npm ci && npm cache clean --force
+
+# 生成 Prisma 客户端
+RUN npx prisma generate
+
+# 构建阶段
+FROM base AS builder
+RUN apk add --no-cache libc6-compat openssl openssl-dev \
+    && rm -rf /var/cache/apk/*
+WORKDIR /app
+
+COPY --from=build-deps /app/node_modules ./node_modules
+COPY --from=build-deps /app/prisma ./prisma
+COPY . .
+
+# 再次生成 Prisma 客户端（确保在完整代码复制后）
+RUN npx prisma generate
+
+# 构建应用
+RUN npm run build
+
+# 运行阶段
+FROM base AS runner
+RUN apk add --no-cache curl openssl dumb-init \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=9002
+ENV HOSTNAME="0.0.0.0"
+
+# 创建非root用户
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
+
+# 复制生产依赖
+COPY --from=deps /app/node_modules ./node_modules
+
+# 复制必要文件
+COPY --from=builder /app/public ./public
+
+# 设置正确的权限
+RUN mkdir .next \
+    && chown nextjs:nodejs .next
+
+# 复制构建输出
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# 复制 Prisma 文件
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# 切换到非root用户
+USER nextjs
+
+EXPOSE 9002
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:9002/api/connections || exit 1
+
+# 使用dumb-init作为进程管理器
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "server.js"] 

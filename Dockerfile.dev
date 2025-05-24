@@ -1,0 +1,29 @@
+# 开发环境 Dockerfile for 企业微信集成平台
+FROM node:18-alpine AS development
+
+RUN apk add --no-cache libc6-compat curl
+WORKDIR /app
+
+# 复制依赖文件
+COPY package.json package-lock.json ./
+
+# 安装依赖（包括开发依赖）
+RUN npm ci
+
+# 复制所有文件
+COPY . .
+
+# 生成 Prisma 客户端
+RUN npx prisma generate
+
+# 暴露端口
+EXPOSE 9002
+
+# 设置环境变量
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=9002
+ENV HOSTNAME="0.0.0.0"
+
+# 开发模式启动命令
+CMD ["npm", "run", "dev"] 
