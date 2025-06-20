@@ -17,6 +17,14 @@
 
 ## 主要功能
 
+### 0. 用户认证系统 ✅ **已完成**
+- **用户登录/注册**: 安全的邮箱密码认证
+- **角色权限管理**: 管理员和普通用户角色
+- **会话管理**: JWT Token 自动管理
+- **路由保护**: 中间件级别的访问控制
+- **现代化UI**: 响应式登录界面和用户菜单
+- **安全特性**: bcrypt密码加密、CSRF保护
+
 ### 1. 企业微信应用管理 ✅ **已完成**
 - **连接管理**: 添加、编辑、删除企业微信应用配置
 - **配置支持**: 企业ID、应用ID、Token、EncodingAESKey
@@ -166,8 +174,9 @@ WebSocket 连接端点 (基础实现)
 
 ## 使用指南
 
-### 企业微信配置
-详细的企业微信应用配置指南请参考：[企业微信配置指南](./docs/wework-setup.md)
+### 配置指南
+- **认证系统配置**：[认证系统文档](./docs/authentication.md)
+- **企业微信配置**：[企业微信配置指南](./docs/wework-setup.md)
 
 ### 基本配置步骤
 1. 创建企业微信应用
@@ -178,10 +187,12 @@ WebSocket 连接端点 (基础实现)
 
 ## 安装和运行
 
+### 快速开始
+
 1. 克隆项目
 ```bash
 git clone <repository-url>
-cd studio
+cd wxwork-n8n-connect
 ```
 
 2. 安装依赖
@@ -192,22 +203,42 @@ npm install
 3. 配置环境变量
 ```bash
 cp .env.example .env
-# 编辑 .env 文件，配置数据库连接
+# 编辑 .env 文件，配置数据库连接和认证密钥
+```
+
+**重要环境变量：**
+```bash
+DATABASE_URL="mysql://username:password@localhost:3306/database_name"
+NEXTAUTH_SECRET="your-secure-random-string-at-least-32-chars"
+NEXTAUTH_URL="http://localhost:9002"
 ```
 
 4. 初始化数据库
 ```bash
-npx prisma db push
+npm run prisma:db-push
 ```
 
-5. 启动开发服务器
+5. 创建管理员用户
+```bash
+npm run auth:create-admin
+```
+
+6. 启动开发服务器
 ```bash
 npm run dev
 ```
 
-6. 访问应用
-- 主页: http://localhost:9002
-- 日志页面: http://localhost:9002/logs
+7. 访问应用
+- 登录页面: http://localhost:9002/auth/signin
+- 主页: http://localhost:9002 (需要登录)
+- 连接管理: http://localhost:9002/connections
+- 事件日志: http://localhost:9002/logs
+
+**默认管理员账户：**
+- 邮箱：`admin@example.com`
+- 密码：`admin123456`
+
+⚠️ **重要**：首次登录后请立即修改默认密码！
 
 ## 测试
 

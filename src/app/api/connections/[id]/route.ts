@@ -20,7 +20,7 @@ interface RouteContext {
 }
 
 export async function GET(request: Request, { params }: RouteContext) {
-  const { id } = params;
+  const { id } = await params;
   try {
     const connection = await prisma.weixinConnection.findUnique({
       where: { id },
@@ -36,7 +36,7 @@ export async function GET(request: Request, { params }: RouteContext) {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
-  const { id } = params;
+  const { id } = await params;
   try {
     const body = await request.json();
     const validation = connectionSchema.safeParse(body);
@@ -72,7 +72,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(request: Request, { params }: RouteContext) {
-  const { id } = params;
+  const { id } = await params;
   try {
     // 使用事务确保数据一致性
     await prisma.$transaction(async (tx) => {

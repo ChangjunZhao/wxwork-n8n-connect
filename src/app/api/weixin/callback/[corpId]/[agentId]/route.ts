@@ -342,7 +342,7 @@ async function generateReplyMessage(
 }
 
 export async function GET(request: NextRequest, { params }: RouteContext) {
-  const { corpId, agentId } = params;
+  const { corpId, agentId } = await params;
   const { searchParams } = new URL(request.url);
   const msg_signature = searchParams.get('msg_signature');
   const timestamp = searchParams.get('timestamp');
@@ -413,7 +413,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
-  const { corpId, agentId } = params;
+  const { corpId, agentId } = await params;
   
   try {
     const body = await request.text();
