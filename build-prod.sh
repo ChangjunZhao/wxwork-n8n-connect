@@ -52,6 +52,12 @@ echo "  启动服务: docker compose -f docker-compose.prod.yml up -d"
 echo "  查看日志: docker compose -f docker-compose.prod.yml logs -f"
 echo "  停止服务: docker compose -f docker-compose.prod.yml down"
 echo ""
+echo "🔐 认证系统配置:"
+echo "  请确保设置以下环境变量:"
+echo "  - NEXTAUTH_SECRET (至少32位字符)"
+echo "  - NEXTAUTH_URL (应用访问地址)"
+echo "  - CREATE_ADMIN_USER (是否自动创建管理员)"
+echo ""
 
 if [ ! -z "$REGISTRY" ]; then
     echo "📤 推送到注册中心:"

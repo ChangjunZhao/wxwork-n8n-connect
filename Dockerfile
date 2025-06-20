@@ -57,10 +57,21 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# 复制 Prisma 文件
+# 复制完整的node_modules（包含运行时依赖）
+COPY --from=deps /app/node_modules ./node_modules
+
+# 复制 Prisma 文件和脚本
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/src/scripts ./src/scripts
+
+# 复制入口脚本
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# 安装额外依赖（用于数据库迁移和脚本执行）
+RUN apk add --no-cache mysql-client
 
 USER nextjs
 
@@ -73,4 +84,5 @@ ENV HOSTNAME="0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:9002/api/connections || exit 1
 
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "server.js"] 

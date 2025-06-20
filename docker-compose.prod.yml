@@ -1,13 +1,18 @@
 services:
   # 企业微信集成平台应用
   wework-platform:
-    image: wework-platform:v1.0.0
+    image: wxwork-n8n-connect-wework-platform:latest
     ports:
       - "9002:9002"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=mysql://wework:wework123@mysql:3306/wework_db
       - NEXT_TELEMETRY_DISABLED=1
+      # NextAuth.js 认证配置 (生产环境需要配置真实值)
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      # 管理员用户创建 (生产环境可以设置为false，手动创建)
+      - CREATE_ADMIN_USER=true
     depends_on:
       mysql:
         condition: service_healthy

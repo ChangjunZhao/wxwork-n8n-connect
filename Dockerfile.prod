@@ -80,10 +80,19 @@ RUN mkdir .next \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# 复制 Prisma 文件
+# 复制 Prisma 文件和脚本
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/src/scripts ./src/scripts
+
+# 复制入口脚本
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# 安装额外依赖（用于数据库迁移和脚本执行）
+RUN apk add --no-cache mysql-client \
+    && rm -rf /var/cache/apk/*
 
 # 切换到非root用户
 USER nextjs
@@ -95,5 +104,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:9002/api/connections || exit 1
 
 # 使用dumb-init作为进程管理器
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["dumb-init", "--", "/bin/sh", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "server.js"] 
